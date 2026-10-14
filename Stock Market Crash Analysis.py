@@ -6,6 +6,11 @@
 
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
+import plotly.io as pio
+
+# Running as a script: each chart opens in your web browser.
+pio.renderers.default = 'browser'
 
 
 # # Analysing Crashes
@@ -13,14 +18,17 @@ import numpy as np
 # In[2]:
 
 
-df = pd.read_csv(r"C:\Users\harsh\Desktop\sensex.csv")  #To read CSV data. 
+# The file has a second header row ('Date,,,,,') from the download tool; skip it.
+# Relative path, so the notebook runs from the repository folder on any machine.
+df = pd.read_csv('Data/sensex.csv', skiprows=[1])
+df = df.rename(columns={'Price': 'Date'})
 print(df.head())
 
 
 # In[3]:
 
 
-date_column = df.columns[0]  
+date_column = 'Date'
 print(f"Using column: {date_column}")
 
 df[date_column] = pd.to_datetime(df[date_column], errors='coerce')
@@ -35,7 +43,6 @@ df['Daily_Return'] = df['Close'].pct_change() * 100
 crash_threshold_daily = -5                             #calculate the daily percentage change and identify crash days.
 df['Crash_Daily'] = df['Daily_Return'] <= crash_threshold_daily
 
-import plotly.graph_objects as go                      
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=df.index, y=df['Close'], mode='lines', name='Closing Price'))
 
@@ -50,7 +57,6 @@ fig.update_layout(
     title='Sensex Closing Price with Daily Crashes Highlighted',
     xaxis_title='Date',
     yaxis_title='Sensex Close',
-    xaxis_rangeslider_visible=True,  
     template="plotly_white"
 )
 
@@ -59,14 +65,14 @@ fig.show()
 
 # # Analyzing Drawdowns
 
-# In[5]:
+# In[4]:
 
 
 df['Cumulative_Max'] = df['Close'].cummax()  # Calculate cumulative max and drawdown (% drop from the cumulative max)
 df['Drawdown'] = (df['Close'] - df['Cumulative_Max']) / df['Cumulative_Max'] * 100
 
 
-# In[6]:
+# In[5]:
 
 
 drawdown_threshold = -20
@@ -82,14 +88,13 @@ fig.update_layout(
     title='Market Drawdown Over Time',
     xaxis_title='Date',
     yaxis_title='Drawdown (%)',
-    xaxis_rangeslider_visible=True,  
     template="plotly_white"
 )
 
 fig.show()
 
 
-# In[7]:
+# In[6]:
 
 
 crash_drawdowns = df[df['Drawdown'] <= drawdown_threshold]
@@ -99,7 +104,7 @@ print(crash_drawdowns[['Close', 'Cumulative_Max', 'Drawdown']].dropna().head(10)
 
 # # Analyzing Periods of Crashes
 
-# In[8]:
+# In[7]:
 
 
 crash_dates = df.index[df['Drawdown'] <= drawdown_threshold]
@@ -123,7 +128,7 @@ for idx, cluster in enumerate(clusters):
     print(f"Cluster {idx+1}: {cluster[0].date()} to {cluster[-1].date()} (Total days: {len(cluster)})")
 
 
-# In[11]:
+# In[8]:
 
 
 #The first crash cluster and visualize the closing price, daily returns, and drawdown  
@@ -132,13 +137,13 @@ if clusters:
     cluster_start = clusters[0][0]
     cluster_end = clusters[0][-1]
     print(f"\nZooming into crash cluster from {cluster_start.date()} to {cluster_end.date()}")
-    
+
     zoom_start = cluster_start - pd.Timedelta(days=30)
     zoom_end = cluster_end + pd.Timedelta(days=30)
-    
+
     # Use searchsorted to find nearest valid dates
     zoom_df = df[(df.index >= zoom_start) & (df.index <= zoom_end)]
-    
+
     fig_close = go.Figure()
     fig_close.add_trace(go.Scatter(x=zoom_df.index, y=zoom_df['Close'], mode='lines', name='Closing Price'))
     fig_close.add_vrect(x0=cluster_start, x1=cluster_end, fillcolor='red', opacity=0.3, layer='below', line_width=0, name='Crash Period')
@@ -146,11 +151,10 @@ if clusters:
         title=f'Sensex Closing Price from {zoom_start.date()} to {zoom_end.date()}',
         xaxis_title='Date',
         yaxis_title='Sensex Close',
-        xaxis_rangeslider_visible=True,
         template="plotly_white"
     )
     fig_close.show()
-    
+
     fig_returns = go.Figure()
     fig_returns.add_trace(go.Scatter(x=zoom_df.index, y=zoom_df['Daily_Return'], mode='lines', name='Daily Return (%)'))
     fig_returns.add_hline(y=0, line_color='black', line_width=0.8)
@@ -159,11 +163,10 @@ if clusters:
         title=f'Sensex Daily Returns from {zoom_start.date()} to {zoom_end.date()}',
         xaxis_title='Date',
         yaxis_title='Daily Return (%)',
-        xaxis_rangeslider_visible=True,
         template="plotly_white"
     )
     fig_returns.show()
-    
+
     fig_drawdown = go.Figure()
     fig_drawdown.add_trace(go.Scatter(x=zoom_df.index, y=zoom_df['Drawdown'], mode='lines', name='Drawdown (%)'))
     fig_drawdown.add_hline(y=drawdown_threshold, line_dash='dash', line_color='red',
@@ -174,7 +177,6 @@ if clusters:
         title=f'Sensex Drawdown from {zoom_start.date()} to {zoom_end.date()}',
         xaxis_title='Date',
         yaxis_title='Drawdown (%)',
-        xaxis_rangeslider_visible=True,
         template="plotly_white"
     )
     fig_drawdown.show()
@@ -182,67 +184,73 @@ else:
     print("No crash clusters identified based on the drawdown threshold.")
 
 
-# In[13]:
+# In[9]:
 
 
-cluster1_start = pd.to_datetime("1997-11-12")
-cluster1_end = pd.to_datetime("1997-12-26")
-cluster49_start = pd.to_datetime("2008-08-18")
-cluster49_end = pd.to_datetime("2009-01-23")
-cluster79_start = pd.to_datetime("2020-03-16")
-cluster79_end = pd.to_datetime("2020-04-03")
+# The three best-known crashes. For each one, the crash period runs from the first day the
+# drawdown crossed the threshold to the market's lowest point (the trough) in that window.
+# (Worked out from the data instead of hard-coding dates.)
+def crash_period(start, end):
+    window = df.loc[start:end]
+    breached = window.index[window['Drawdown'] <= drawdown_threshold]
+    if len(breached) == 0:
+        return None
+    trough = window['Drawdown'].idxmin()
+    return [breached[0], trough]
+
+crash_periods = {
+    "1997-98 Asian crisis": crash_period("1997-07-01", "1998-12-31"),
+    "2008-09 Global financial crisis": crash_period("2008-01-01", "2009-12-31"),
+    "2020 COVID-19 crash": crash_period("2020-01-01", "2020-12-31"),
+}
 
 def plot_crash_period(cluster_start, cluster_end, title_suffix=""):
     zoom_start = cluster_start - pd.Timedelta(days=30)
     zoom_end = cluster_end + pd.Timedelta(days=30)
     zoom_df = df[(df.index >= zoom_start) & (df.index <= zoom_end)]
-    
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=zoom_df.index, y=zoom_df['Close'], mode='lines', name='Closing Price'))
     fig.add_vrect(x0=cluster_start, x1=cluster_end, fillcolor='red', opacity=0.3, layer='below', line_width=0, name='Crash Period')
     fig.update_layout(
         title=f'Sensex Closing Price {title_suffix}<br>({zoom_start.date()} to {zoom_end.date()})',
-        xaxis_title='Date',
-        yaxis_title='Sensex Close',
-        xaxis_rangeslider_visible=True,
-        template="plotly_white"
-    )
+        xaxis_title='Date', yaxis_title='Sensex Close', template="plotly_white")
     fig.show()
 
 def plot_daily_returns(cluster_start, cluster_end, title_suffix=""):
     zoom_start = cluster_start - pd.Timedelta(days=30)
     zoom_end = cluster_end + pd.Timedelta(days=30)
     zoom_df = df[(df.index >= zoom_start) & (df.index <= zoom_end)]
-    
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=zoom_df.index, y=zoom_df['Daily_Return'], mode='lines', name='Daily Return (%)'))
     fig.add_hline(y=0, line_color='black', line_width=0.8)
     fig.add_vrect(x0=cluster_start, x1=cluster_end, fillcolor='red', opacity=0.3, layer='below', line_width=0, name='Crash Period')
     fig.update_layout(
         title=f'Sensex Daily Returns {title_suffix}<br>({zoom_start.date()} to {zoom_end.date()})',
-        xaxis_title='Date',
-        yaxis_title='Daily Return (%)',
-        xaxis_rangeslider_visible=True,
-        template="plotly_white"
-    )
+        xaxis_title='Date', yaxis_title='Daily Return (%)', template="plotly_white")
     fig.show()
 
-# Plot for each crash period
-plot_crash_period(cluster1_start, cluster1_end, "1997 Crash")
-plot_crash_period(cluster49_start, cluster49_end, "2008-2009 Crash")
-plot_crash_period(cluster79_start, cluster79_end, "2020 Crash")
-
-# Plot daily returns for each crash period
-plot_daily_returns(cluster1_start, cluster1_end, "1997 Crash")
-plot_daily_returns(cluster49_start, cluster49_end, "2008-2009 Crash")
-plot_daily_returns(cluster79_start, cluster79_end, "2020 Crash")
+for name, cluster in crash_periods.items():
+    if cluster is None:
+        print(f"{name}: drawdown never crossed {drawdown_threshold}% in this window")
+        continue
+    worst = df.loc[cluster[-1], 'Drawdown']
+    print(f"{name}: crossed {drawdown_threshold}% on {cluster[0].date()}, bottomed on {cluster[-1].date()} at {worst:.1f}%")
+    plot_crash_period(cluster[0], cluster[-1], name)
+    plot_daily_returns(cluster[0], cluster[-1], name)
 
 
 # # Developing Early Warning Signals
+# 
+# A simple rule: **warning** when the 10-day average daily return is below **−0.5 %** *and* the 10-day volatility (standard deviation of daily returns) is above **2 %**.
+# 
+# First, a demonstration on **synthetic** data (a simulated year with a built-in crash), then the same rule tested on the **real SENSEX** history.
 
-# In[14]:
+# In[10]:
 
 
+# Synthetic data: a simulated year of prices with a crash between trading days 150 and 200
 np.random.seed(42)
 
 dates_2025 = pd.bdate_range(start="2025-01-01", periods=250)
@@ -265,7 +273,7 @@ df_2025 = pd.DataFrame({
 df_2025.set_index('Date', inplace=True)
 
 
-# In[15]:
+# In[11]:
 
 
 df_2025['Rolling_Mean_Return'] = df_2025['Daily_Return'].rolling(window=10).mean()
@@ -275,11 +283,11 @@ warning_condition = (df_2025['Rolling_Mean_Return'] < -0.5) & (df_2025['Rolling_
 df_2025['Warning'] = warning_condition
 
 warnings_df = df_2025[df_2025['Warning']]
-print("Early Warning Signals for 2025:")
+print("Early Warning Signals (synthetic data):")
 print(warnings_df[['Close', 'Daily_Return', 'Rolling_Mean_Return', 'Rolling_Volatility']].head(15))
 
 
-# In[16]:
+# In[12]:
 
 
 fig = go.Figure()
@@ -294,12 +302,40 @@ fig.add_trace(go.Scatter(x=warning_dates, y=warning_closes, mode='markers',
                           name='Early Warning Signal'))
 
 fig.update_layout(
-    title='Synthetic 2025 Sensex Closing Price with Early Warning Signals',
+    title='Synthetic data (simulated year): Closing Price with Early Warning Signals',
     xaxis_title='Date',
     yaxis_title='Sensex Close',
-    xaxis_rangeslider_visible=True, 
     template="plotly_white"
 )
 
+fig.show()
+
+
+# ## Testing the warning rule on real SENSEX data
+# 
+# Did the rule fire before or during the real crash periods found above?
+
+# In[13]:
+
+
+df['Rolling_Mean_Return'] = df['Daily_Return'].rolling(window=10).mean()
+df['Rolling_Volatility'] = df['Daily_Return'].rolling(window=10).std()
+df['Warning'] = (df['Rolling_Mean_Return'] < -0.5) & (df['Rolling_Volatility'] > 2)
+
+print(f"Warning days in the real data: {df['Warning'].sum()} of {len(df)}")
+for name, cluster in crash_periods.items():
+    if cluster is None:
+        continue
+    window = df.loc[cluster[0] - pd.Timedelta(days=60):cluster[-1], 'Warning']
+    first = window[window].index.min()
+    status = f"first warning on {first.date()}" if pd.notna(first) else "no warning"
+    print(f"{name} (crash period starts {cluster[0].date()}): {status}")
+
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=df.index, y=df['Close'], mode='lines', name='Closing Price'))
+fig.add_trace(go.Scatter(x=df.index[df['Warning']], y=df.loc[df['Warning'], 'Close'], mode='markers',
+                         marker=dict(color='red', size=5), name='Early Warning Signal'))
+fig.update_layout(title='Real SENSEX Closing Price with Early Warning Signals',
+                  xaxis_title='Date', yaxis_title='Sensex Close', template="plotly_white")
 fig.show()
 

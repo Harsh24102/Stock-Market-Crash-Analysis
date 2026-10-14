@@ -1,45 +1,54 @@
-# 📉 SENSEX Stock Market Crash Analysis (1997-2024)
+# 📉 SENSEX Stock Market Crash Analysis (1997–2025)
 
-![Status: Complete](https://img.shields.io/badge/Status-Complete-green.svg)
-[![Tech Stack](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
-[![Tech Stack](https://img.shields.io/badge/Pandas-Data_Analysis-orange.svg)](https://pandas.pydata.org/)
-[![Tech Stack](https://img.shields.io/badge/Visualization-Matplotlib_Seaborn-red.svg)](https://matplotlib.org/)
+![Python](https://img.shields.io/badge/Python-3-3776AB?logo=python&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-analysis-150458?logo=pandas&logoColor=white)
+![Plotly](https://img.shields.io/badge/Plotly-charts-3F4F75?logo=plotly&logoColor=white)
 
-## 1. Project Goal
+An analysis of daily **SENSEX** prices from July 1997 to March 2025 that finds, measures and
+charts major market crashes using **drawdowns** (the fall from the previous peak), and tests a
+simple **early-warning rule** on the real history.
 
-The primary objective of this project is to analyze historical SENSEX data from 1997 to the present to **identify, visualize, and quantify major stock market crashes** and periods of high volatility. The analysis focuses on calculating key metrics like drawdowns and recovery periods to understand market behavior.
+## Key results
 
-## 2. Methodology and Key Analysis Steps
+| Crash | Drawdown first crossed −20 % | Bottom | Deepest drawdown | Warning rule fired |
+|---|---|---|---|---|
+| 1997–98 Asian crisis | 12 Nov 1997 | 20 Oct 1998 | −39.2 % | 13 May 1998 |
+| 2008–09 Global financial crisis | 11 Feb 2008 | 9 Mar 2009 | −60.9 % | 21 Jan 2008 (before the −20 % breach) |
+| 2020 COVID-19 crash | 12 Mar 2020 | 23 Mar 2020 | −38.1 % | 12 Mar 2020 |
 
-The analysis is performed within the **`Stock Market Crash Analysis.ipynb`** Jupyter Notebook and follows these steps:
+The warning rule fired on 255 of 6,835 trading days. It flagged the 2008 crash early and the
+2020 crash on its first day, but only came late for 1997–98, when the fall was slower.
 
-1.  **Data Loading and Cleaning:** Load the `sensex.csv` data and perform initial cleaning, focusing on converting the date column and handling the data types for price and volume columns.
-2.  **Drawdown Calculation:** Calculate the **maximum drawdown** (the peak-to-trough decline during a specific period) to quantitatively define a crash.
-3.  **Crash Identification:** Identify specific historical market crashes (e.g., dot-com bubble, 2008 financial crisis, COVID-19 drop) based on severe drawdown metrics.
-4.  **Visualization:** Generate time-series plots to visualize the SENSEX index price and overlay the identified crash periods for clear communication of results.
+## Method
 
-## 3. Technology Stack
+1. **Load and clean** the daily data (`Data/sensex.csv`): parse dates, sort, skip the extra
+   header row the download tool adds.
+2. **Daily crashes:** days with a fall of 5 % or more.
+3. **Drawdowns:** each day's close compared with the highest close so far.
+4. **Crash clusters:** runs of days with drawdown below −20 %.
+5. **Crash periods:** for each of the three crashes, from the first −20 % day to the bottom,
+   found from the data rather than hard-coded.
+6. **Early-warning rule:** warn when the 10-day average daily return is below −0.5 % **and**
+   10-day volatility is above 2 %. Shown first on a simulated year, then tested on the real data.
 
-* **Core Language:** Python 3.x
-* **Data Manipulation:** Pandas, NumPy
-* **Visualization:** Matplotlib, Seaborn (Inferred from standard practice for this type of analysis)
+## Repository structure
 
-## 4. Data Source
+| File / folder | Purpose |
+|---|---|
+| `Stock Market Crash Analysis.ipynb` | Main notebook with the full analysis and charts (charts are visible on GitHub) |
+| `Stock Market Crash Analysis.py` | Same analysis as a script; charts open in your browser |
+| `Data/sensex.csv` | SENSEX daily prices (Date, Close, High, Low, Open, Volume) |
+| `Getting Started with Stock Market Crash Analysis with Python.docx` | Write-up of the approach |
 
-The project uses historical daily price data for the SENSEX index.
-* **File:** `data/sensex.csv`
-* **Columns Include:** `Date`, `Close`, `High`, `Low`, `Open`, `Volume`.
+## Run it
 
-## 5. How to Run This Project
+```bash
+git clone https://github.com/Harsh24102/Stock-Market-Crash-Analysis.git
+cd Stock-Market-Crash-Analysis
+pip install pandas numpy plotly jupyter
+jupyter notebook "Stock Market Crash Analysis.ipynb"
+```
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone [https://github.com/Harsh24102/Stock-Market-Crash-Analysis.git](https://github.com/Harsh24102/Stock-Market-Crash-Analysis.git)
-    ```
-2.  **Install Dependencies:**
-    ```bash
-    pip install pandas numpy matplotlib seaborn # Ensure all necessary libraries are installed
-    ```
-3.  **Run the Notebook:** Open the `Stock Market Crash Analysis.ipynb` file in Jupyter Lab or VS Code to step through the analysis and generate the visualizations.
+Optional: `pip install kaleido` to also save static PNG copies of the charts.
 
----
+**Tech:** Python · pandas · NumPy · Plotly · Jupyter

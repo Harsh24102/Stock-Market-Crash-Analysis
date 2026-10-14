@@ -1,14 +1,13 @@
-# Ignore Python specific files
+# Python
 __pycache__/
 *.pyc
+.venv/
+venv/
 
-# Ignore Jupyter Notebook data/checkpoints
-.ipynb_checkpoints
+# Jupyter checkpoints
+.ipynb_checkpoints/
 
-# Ignore large files that should not be tracked
-# (Especially if your CSV grows very large)
-# **You can ignore the entire 'data' folder if the CSV is too big for GitHub.**
-# In this case, we will track the small 'sensex.csv' for context.
-
-# Ignore local system files
+# Office lock files and OS files
+~$*
 .DS_Store
+Thumbs.db
